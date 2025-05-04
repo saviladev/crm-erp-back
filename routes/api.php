@@ -104,6 +104,7 @@ Route::group([
     Route::resource("clients",ClientController::class); 
 
     Route::post("proformas/index",[ProformaController::class,'index']);
+    Route::post("proformas/status", [ProformaController::class, "estimarEstado"]);
     Route::post("proformas/cronograma",[CalendarProformaController::class,'cronograma']);
     Route::get("proformas/eval-disponibilidad/{id}", [ProformaController::class, 'eval_disponibilidad']);
     Route::get("proformas/search-clients", [ProformaController::class, 'search_clients']);
@@ -176,6 +177,7 @@ Route::group([
     });
 });
 
+// Public routes
 Route::get("pdf/proforma/{id}",[ProformaController::class,"proforma_pdf"]);
 Route::get("excel/export-proforma-generales",[ProformaController::class,"export_proforma_general"]);
 Route::get("excel/export-proforma-details",[ProformaController::class,"export_proforma_details"]);

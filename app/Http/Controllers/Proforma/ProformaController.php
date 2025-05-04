@@ -186,6 +186,39 @@ class ProformaController extends Controller
             "message" => $message,
         ]);
     }
+
+    public function estimarEstado(Request $request)
+    {
+        $data = $request->data;
+        $azureMLEndpoint = env('AZURE_ML_ENDPOINT');
+        $azureMLKey = env('AZURE_ML_KEY');
+
+        if (!$azureMLEndpoint || !$azureMLKey) {
+            return response()->json([
+                "message" => "Azure ML configuration is missing",
+            ], 500);
+        }
+
+        try {
+            $client = new \GuzzleHttp\Client();
+            $response = $client->post($azureMLEndpoint, [
+                'headers' => [
+                    'Authorization' => 'Bearer ' . $azureMLKey,
+                    'Content-Type' => 'application/json',
+                ],
+                'json' => $data
+            ]);
+
+            $result = json_decode($response->getBody(), true);
+            
+            return response()->json($result);
+        } catch (\Exception $e) {
+            return response()->json([
+                "message" => "Error calling Azure ML service: " . $e->getMessage(),
+            ], 500);
+        }
+    }
+
     /**
      * Store a newly created resource in storage.
      */
