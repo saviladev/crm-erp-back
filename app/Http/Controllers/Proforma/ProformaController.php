@@ -28,6 +28,9 @@ use App\Http\Resources\Product\ProductCollection;
 use App\Http\Resources\Proforma\ProformaResource;
 use App\Http\Resources\Proforma\ProformaCollection;
 use Symfony\Component\HttpKernel\Exception\HttpException;
+use Aws\Credentials\Credentials;
+use Aws\Signature\SignatureV4;
+use Psr\Http\Message\RequestInterface;
 
 class ProformaController extends Controller
 {
@@ -187,7 +190,8 @@ class ProformaController extends Controller
         ]);
     }
 
-    public function estimarEstado(Request $request)
+    // Azure ML AI
+    public function estimarEstadoAzure(Request $request)
     {
         $data = $request->data;
         $azureMLEndpoint = env('AZURE_ML_ENDPOINT');
@@ -215,6 +219,62 @@ class ProformaController extends Controller
         } catch (\Exception $e) {
             return response()->json([
                 "message" => "Error calling Azure ML service: " . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    public function signAwsRequest(RequestInterface $request, string $accessKey, string $secretAccessKey): RequestInterface
+    {
+        $region = env('AWS_REGION', 'us-east-1');
+        $service = 'sagemaker';
+        
+        $signature = new SignatureV4($service, $region);
+        $credentials = new Credentials($accessKey, $secretAccessKey);
+        
+        return $signature->signRequest($request, $credentials);
+    }
+
+    // AWS Sagemaker AI
+    public function estimarEstadoAws(Request $request)
+    {
+        $data = $request->data;
+        $endpoint = env('AWS_SAGEMAKER_ENDPOINT');
+        $accessKey = env('AWS_ACCESS_KEY_ID');
+        $secretKey = env('AWS_SECRET_ACCESS_KEY');
+
+        if (!$endpoint || !$accessKey || !$secretKey) {
+            return response()->json([
+                "message" => "AWS configuration is missing",
+            ], 500);
+        }
+
+        try {
+            $client = new \GuzzleHttp\Client([
+                'verify' => false // Disable SSL verification for testing
+            ]);
+            
+            // Create the request
+            $request = new \GuzzleHttp\Psr7\Request(
+                'POST',
+                $endpoint,
+                [
+                    'Content-Type' => 'application/json',
+                    'Accept' => 'application/json'
+                ],
+                json_encode($data)
+            );
+
+            // Sign the request
+            $signedRequest = $this->signAwsRequest($request, $accessKey, $secretKey);
+
+            // Send the signed request
+            $response = $client->send($signedRequest);
+            $result = json_decode($response->getBody(), true);
+            
+            return response()->json($result);
+        } catch (\Exception $e) {
+            return response()->json([
+                "message" => "Error calling AWS SageMaker service: " . $e->getMessage(),
             ], 500);
         }
     }

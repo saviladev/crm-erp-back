@@ -104,7 +104,8 @@ Route::group([
     Route::resource("clients",ClientController::class); 
 
     Route::post("proformas/index",[ProformaController::class,'index']);
-    Route::post("proformas/status", [ProformaController::class, "estimarEstado"]);
+    Route::post("proformas/status-azure", [ProformaController::class, "estimarEstadoAzure"]);
+    Route::post("proformas/status-aws", [ProformaController::class, "estimarEstadoAws"]);
     Route::post("proformas/cronograma",[CalendarProformaController::class,'cronograma']);
     Route::get("proformas/eval-disponibilidad/{id}", [ProformaController::class, 'eval_disponibilidad']);
     Route::get("proformas/search-clients", [ProformaController::class, 'search_clients']);
